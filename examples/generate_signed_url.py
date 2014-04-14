@@ -7,7 +7,7 @@ import base64
 import urllib
 import hashlib
 
-SECERT_KEY = "YOUR_SECRET_KEY"
+SECRET_KEY = "YOUR_SECRET_KEY"
 
 
 def main(file_path):
@@ -15,7 +15,7 @@ def main(file_path):
     expires = int(time.time()) + 60*15
     
     string_to_sign = 'GET\n{}\n{}'.format(expires, file_path)
-    h = hmac.new(SECERT_KEY, string_to_sign, hashlib.sha256)
+    h = hmac.new(SECRET_KEY, string_to_sign, hashlib.sha256)
     sig = urllib.quote(base64.b64encode(h.digest()).strip())
     
     print "{file_path}?expires={expires}&signature={sig}".format(

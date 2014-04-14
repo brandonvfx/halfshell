@@ -186,7 +186,7 @@ The `signed_url` signature scheme:
 ```python
 expires = int(time.time()) + 60*15 # 15m from now.
 string_to_sign = 'GET\n{}\n{}'.format(expires, file_path)
-h = hmac.new(SECERT_KEY, string_to_sign, hashlib.sha256)
+h = hmac.new(SECRET_KEY, string_to_sign, hashlib.sha256)
 sig = urllib.quote(base64.b64encode(h.digest()).strip())
 url = 'http://localhost:8080/{}?expires={}&signature={}'.format(file_path, expires, sig)
 # http://localhost:8080/users/joe/default.jpg?expires=1397431365&signature=nbEsw2W2cYpyJl/mdmt%2BJBb7FtLpGQeiwnQy362uaoI%3D
