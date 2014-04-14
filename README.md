@@ -169,6 +169,34 @@ For Gaussian blur, the radius used is this value * the image width. This allows
 you to use a blur parameter (from 0-1) which will apply the same proportion of
 blurring to each image size.
 
+### Auth
+
+The `auth` block is a mapping of auth names to auth configuration values. The `auth` block is not 
+required, if it is missing it will default to the `allow_all` auth type.
+
+##### type
+
+The type of authorization to for the request. Currently `signed_url` or `allow_all`(the default). 
+Query string arguments for `signed_url`:
+
+- expires: Time in seconds at which the url is no longer valid.
+- signature: The base64 encoded signature of the url and expiration time.
+
+The `signed_url` signature scheme:
+```python
+expires = int(time.time()) + 60*15 # 15m from now.
+string_to_sign = 'GET\n{}\n{}'.format(expires, file_path)
+h = hmac.new(SECERT_KEY, string_to_sign, hashlib.sha256)
+sig = urllib.quote(base64.b64encode(h.digest()).strip())
+url = 'http://localhost:8080/{}?expires={}&signature={}'.format(file_path, expires, sig)
+# http://localhost:8080/users/joe/default.jpg?expires=1397431365&signature=nbEsw2W2cYpyJl/mdmt%2BJBb7FtLpGQeiwnQy362uaoI%3D
+```
+
+##### secret_key
+
+For the signed url auth type, the secret key used to sign the request.
+
+
 ### Routes
 
 The `routes` block is a mapping of route patterns to route configuration values.
@@ -188,6 +216,11 @@ The name of the source to use for the route.
 ##### processor
 
 The name of the processor to use for the route.
+
+##### auth
+
+The name of the auth to use for the route. Default: 'default'. If a 'default' auth is not defined
+an `allow_all` auth type will be added as 'default'.
 
 ## Contributing
 

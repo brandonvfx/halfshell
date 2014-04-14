@@ -1,0 +1,56 @@
+{
+    "server": {
+        "port": 8080,
+        "read_timeout": 5,
+        "write_timeout": 30
+    },
+    "auth": {
+        "default": {
+            "type": "allow_all"
+        },
+        "signed": {
+            "type": "signed_url",
+            "secret_key": "YOUR_SECRET_KEY"
+        }
+    },
+    "sources": {
+        "default": {
+            "type": "s3",
+            "s3_access_key": "<S3_ACCESS_KEY>",
+            "s3_secret_key": "<S3_SECRET_KEY>"
+        },
+        "blog-post-images": {
+            "s3_bucket": "my-company-blog-post-images"
+        },
+        "profile-photos": {
+            "s3_bucket": "my-company-profile-photos"
+        }
+    },
+    "processors": {
+        "default": {
+            "image_compression_quality": 85,
+            "maintain_aspect_ratio": true,
+            "max_blur_radius_percentage": 0,
+            "max_image_height": 0,
+            "max_image_width": 1000
+
+        },
+        "profile-photos": {
+            "default_image_width": 120
+        }
+    },
+    "routes": {
+        "^/blog(?P<image_path>/.*)$": {
+            "name": "blog-post-images",
+            "source": "blog-post-images",
+            "processor": "default",
+            "auth": "default"
+        },
+        "^/users(?P<image_path>/.*)$": {
+            "name": "profile-photos",
+            "source": "profile-photos",
+            "processor": "profile-photos",
+            "auth": "signed"
+        }
+    }
+}

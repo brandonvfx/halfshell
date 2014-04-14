@@ -37,6 +37,7 @@ type Route struct {
 	Processor      ImageProcessor
 	Source         ImageSource
 	Statter        Statter
+	Auth		   Auth
 }
 
 // Returns a pointer to a new Route instance created using the provided
@@ -49,6 +50,7 @@ func NewRouteWithConfig(config *RouteConfig) *Route {
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
 		Statter:        NewStatterWithConfig(config),
+		Auth:		   NewAuthWithConfig(config.AuthConfig),
 	}
 }
 
@@ -59,8 +61,8 @@ func (p *Route) ShouldHandleRequest(r *http.Request) bool {
 }
 
 // Parses the source and processor options from the request.
-func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
-	*ImageSourceOptions, *ImageProcessorOptions) {
+func (p *Route) GetOptionsForRequest(r *http.Request) (
+	*ImageSourceOptions, *ImageProcessorOptions, *AuthOptions) {
 
 	matches := p.Pattern.FindAllStringSubmatch(r.URL.Path, -1)[0]
 	path := matches[p.ImagePathIndex]
@@ -68,9 +70,17 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	width, _ := strconv.ParseUint(r.FormValue("w"), 10, 32)
 	height, _ := strconv.ParseUint(r.FormValue("h"), 10, 32)
 	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
+	
+	expires, _ := strconv.ParseInt(r.FormValue("expires"), 10, 64)
+	sig := r.FormValue("signature")
+	
 
 	return &ImageSourceOptions{Path: path}, &ImageProcessorOptions{
 		Dimensions: ImageDimensions{width, height},
 		BlurRadius: blurRadius,
+	}, &AuthOptions{
+		Path: r.URL.Path,
+		Expires: expires,
+		Signature: sig,
 	}
 }

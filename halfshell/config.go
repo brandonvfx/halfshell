@@ -50,6 +50,7 @@ type RouteConfig struct {
 	ImagePathIndex  int
 	SourceConfig    *SourceConfig
 	ProcessorConfig *ProcessorConfig
+	AuthConfig	  *AuthConfig
 }
 
 // SourceConfig holds the type information and configuration settings for a
@@ -74,6 +75,13 @@ type ProcessorConfig struct {
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
 }
+
+type AuthConfig struct {
+	Name        string
+	Type        AuthType
+	SecretKey   string
+}
+
 
 // Parses a JSON configuration file and returns a pointer to a new Config object.
 func NewConfigFromFile(filepath string) *Config {
@@ -101,8 +109,28 @@ func newConfigParser(filepath string) *configParser {
 
 func (c *configParser) parse() *Config {
 	config := Config{ServerConfig: c.parseServerConfig()}
+	authConfigsByName := make(map[string]*AuthConfig)
 	sourceConfigsByName := make(map[string]*SourceConfig)
 	processorConfigsByName := make(map[string]*ProcessorConfig)
+
+
+	hasDefaultAuth := false
+	if c.data["auth"] != nil {
+		for authName := range c.data["auth"].(map[string]interface{}) {
+			if authName == "default" {
+				hasDefaultAuth = true
+			}
+			authConfigsByName[authName] = c.parseAuthConfig(authName)
+		}
+	}
+	
+	if !hasDefaultAuth {
+		authConfigsByName["default"] = &AuthConfig{
+			Name:        "default",
+			Type:        AuthType("allow_all"),
+			SecretKey:   "",
+		}
+	}
 
 	for sourceName := range c.data["sources"].(map[string]interface{}) {
 		sourceConfigsByName[sourceName] = c.parseSourceConfig(sourceName)
@@ -136,10 +164,19 @@ func (c *configParser) parse() *Config {
 		processorKey := routeData["processor"].(string)
 		sourceKey := routeData["source"].(string)
 
+		var authKey string
+		hasAuth := routeData["auth"]	
+		if hasAuth == nil {
+			authKey = "default"
+		}else {
+			authKey = hasAuth.(string)
+		}
+		
 		routeConfig.Name = routeData["name"].(string)
 		routeConfig.Pattern = pattern
 		routeConfig.ProcessorConfig = processorConfigsByName[processorKey]
 		routeConfig.SourceConfig = sourceConfigsByName[sourceKey]
+		routeConfig.AuthConfig = authConfigsByName[authKey]
 
 		config.RouteConfigs = append(config.RouteConfigs, routeConfig)
 	}
@@ -178,6 +215,15 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
 	}
 }
+
+func (c *configParser) parseAuthConfig(authName string) *AuthConfig {
+	return &AuthConfig{
+		Name:        authName,
+		Type:        AuthType(c.stringForKeypath("auth.%s.type", authName)),
+		SecretKey:   c.stringForKeypath("auth.%s.secret_key", authName),
+	}
+}
+
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {
 	keypath := fmt.Sprintf(keypathFormat, v...)

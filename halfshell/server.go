@@ -65,6 +65,12 @@ func (s *Server) ImageRequestHandler(w *HalfshellResponseWriter, r *HalfshellReq
 	}
 
 	defer func() { go r.Route.Statter.RegisterRequest(w, r) }()
+	
+	err := r.Route.Auth.Authorize(r.AuthOptions)
+	if err != nil {
+		w.WriteError(err.Error(), http.StatusForbidden)
+		return
+	}
 
 	s.Logger.Info("Handling request for image %s with dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
@@ -104,10 +110,11 @@ type HalfshellRequest struct {
 	Route            *Route
 	SourceOptions    *ImageSourceOptions
 	ProcessorOptions *ImageProcessorOptions
+	AuthOptions	   *AuthOptions
 }
 
 func (s *Server) NewHalfshellRequest(r *http.Request) *HalfshellRequest {
-	request := &HalfshellRequest{r, time.Now(), nil, nil, nil}
+	request := &HalfshellRequest{r, time.Now(), nil, nil, nil, nil}
 	for _, route := range s.Routes {
 		if route.ShouldHandleRequest(r) {
 			request.Route = route
@@ -115,8 +122,8 @@ func (s *Server) NewHalfshellRequest(r *http.Request) *HalfshellRequest {
 	}
 
 	if request.Route != nil {
-		request.SourceOptions, request.ProcessorOptions =
-			request.Route.SourceAndProcessorOptionsForRequest(r)
+		request.SourceOptions, request.ProcessorOptions, request.AuthOptions =
+			request.Route.GetOptionsForRequest(r)
 	}
 
 	return request
